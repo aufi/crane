@@ -15,4 +15,9 @@
 # Dependency directories
 vendor/
 
+# Crane binary
 crane
+crane-test
+
+# Test artifacts
+.crane-test/

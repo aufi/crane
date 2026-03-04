@@ -1,4 +1,4 @@
-package apply
+package transform_apply
 
 import (
 	"context"
@@ -47,17 +47,13 @@ func (o *Options) Run() error {
 	return o.run()
 }
 
-func NewApplyCommand(f *flags.GlobalFlags) *cobra.Command {
+func NewTransformApplyCommand(f *flags.GlobalFlags) *cobra.Command {
 	o := &Options{
 		cobraGlobalFlags: f,
 	}
 	cmd := &cobra.Command{
-		Use:   "apply",
+		Use:   "transform-apply",
 		Short: "Apply the transformations to the exported resources and save results in an output directory",
-		Long: `Apply the transformations to the exported resources and save results in an output directory.
-
-Note: This command is available at the top level for backward compatibility.
-The preferred way is to use 'crane transform apply' instead.`,
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := o.Complete(c, args); err != nil {
 				return err
