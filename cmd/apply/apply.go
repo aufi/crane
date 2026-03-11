@@ -1,17 +1,14 @@
 package apply
 
 import (
-	"context"
-	"errors"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
-	"github.com/konveyor/crane-lib/apply"
-	"github.com/konveyor/crane/internal/file"
 	"github.com/konveyor/crane/internal/flags"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"sigs.k8s.io/yaml"
 )
 
 type Options struct {
@@ -28,7 +25,6 @@ type Options struct {
 }
 
 type Flags struct {
-	ExportDir    string `mapstructure:"export-dir"`
 	TransformDir string `mapstructure:"transform-dir"`
 	OutputDir    string `mapstructure:"output-dir"`
 }
@@ -80,102 +76,60 @@ func NewApplyCommand(f *flags.GlobalFlags) *cobra.Command {
 }
 
 func addFlagsForOptions(o *Flags, cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&o.ExportDir, "export-dir", "e", "export", "The path where the kubernetes resources are saved")
-	cmd.Flags().StringVarP(&o.TransformDir, "transform-dir", "t", "transform", "The path where files that contain the transformations are saved")
-	cmd.Flags().StringVarP(&o.OutputDir, "output-dir", "o", "output", "The path where files are to be saved after transformation are applied")
+	cmd.Flags().StringVarP(&o.TransformDir, "transform-dir", "t", "transform", "The path where the Kustomize overlay is located")
+	cmd.Flags().StringVarP(&o.OutputDir, "output-dir", "o", "", "Optional path to save rendered manifests (if not specified, outputs to stdout)")
 }
 
 func (o *Options) run() error {
 	log := o.globalFlags.GetLogger()
-	a := apply.Applier{}
-
-	// Load all the resources from the export dir
-	exportDir, err := filepath.Abs(o.ExportDir)
-	if err != nil {
-		// Handle errors better for users.
-		return err
-	}
 
 	transformDir, err := filepath.Abs(o.TransformDir)
 	if err != nil {
 		return err
 	}
 
-	outputDir, err := filepath.Abs(o.OutputDir)
+	// Validate that kustomization.yaml exists
+	kustomizationPath := filepath.Join(transformDir, "kustomization.yaml")
+	if _, err := os.Stat(kustomizationPath); os.IsNotExist(err) {
+		return fmt.Errorf("kustomization.yaml not found in %s - please run 'crane transform' first", transformDir)
+	}
+
+	// Check if kubectl is available
+	if _, err := exec.LookPath("kubectl"); err != nil {
+		return fmt.Errorf("kubectl not found in PATH - please install kubectl to use crane apply")
+	}
+
+	// Execute kubectl kustomize
+	log.Infof("rendering Kustomize overlay from: %s", transformDir)
+	cmd := exec.Command("kubectl", "kustomize", transformDir)
+
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		return fmt.Errorf("kubectl kustomize failed: %w\nOutput: %s", err, string(output))
 	}
 
-	files, err := file.ReadFiles(context.TODO(), exportDir)
-	if err != nil {
-		return err
+	// Handle output
+	if o.OutputDir != "" {
+		outputDir, err := filepath.Abs(o.OutputDir)
+		if err != nil {
+			return err
+		}
+
+		if err := os.MkdirAll(outputDir, 0755); err != nil {
+			return err
+		}
+
+		outputPath := filepath.Join(outputDir, "all.yaml")
+		if err := os.WriteFile(outputPath, output, 0644); err != nil {
+			return err
+		}
+
+		log.Infof("rendered manifests written to: %s", outputPath)
+	} else {
+		// Output to stdout
+		fmt.Print(string(output))
 	}
 
-	opts := file.PathOpts{
-		TransformDir: transformDir,
-		ExportDir:    exportDir,
-		OutputDir:    outputDir,
-	}
-
-	//TODO: @shawn-hurley handle case where transform or whiteout file is not present.
-	for _, f := range files {
-		whPath := opts.GetWhiteOutFilePath(f.Path)
-		_, statErr := os.Stat(whPath)
-		if !errors.Is(statErr, os.ErrNotExist) {
-			log.Infof("resource file: %v is skipped due to white file: %v", f.Info.Name(), whPath)
-			continue
-		}
-
-		// Set doc to the object, only update the file if the transfrom file exists
-		doc, err := f.Unstructured.MarshalJSON()
-		if err != nil {
-			return err
-		}
-
-		tfPath := opts.GetTransformPath(f.Path)
-		// Check if transform file exists
-		// If the transform does not exist, assume that the resource file is
-		// not needed and ignore for now.
-		_, tfStatErr := os.Stat(tfPath)
-		if err != nil && !errors.Is(tfStatErr, os.ErrNotExist) {
-			// Some other error here err out
-			return err
-		}
-
-		if !errors.Is(tfStatErr, os.ErrNotExist) {
-			transformfile, err := os.ReadFile(tfPath)
-			if err != nil {
-				return err
-			}
-
-			doc, err = a.Apply(f.Unstructured, transformfile)
-			if err != nil {
-				return err
-			}
-		}
-
-		y, err := yaml.JSONToYAML(doc)
-		if err != nil {
-			return err
-		}
-		outputFilePath := opts.GetOutputFilePath(f.Path)
-		// We must create all the directories here.
-		err = os.MkdirAll(filepath.Dir(outputFilePath), 0777)
-		if err != nil {
-			return err
-		}
-		outputFile, err := os.Create(outputFilePath)
-		if err != nil {
-			return err
-		}
-		defer outputFile.Close()
-		i, err := outputFile.Write(y)
-		if err != nil {
-			return err
-		}
-		log.Debugf("wrote %v bytes for file: %v", i, outputFilePath)
-	}
-
+	log.Infof("apply completed successfully")
 	return nil
-
 }
