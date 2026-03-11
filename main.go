@@ -5,6 +5,7 @@ import (
 
 	"github.com/konveyor/crane/cmd/apply"
 	"github.com/konveyor/crane/cmd/convert"
+	"github.com/konveyor/crane/cmd/discover"
 	export "github.com/konveyor/crane/cmd/export"
 	plugin_manager "github.com/konveyor/crane/cmd/plugin-manager"
 	"github.com/konveyor/crane/cmd/runfn"
@@ -27,6 +28,7 @@ func main() {
 		Use: "crane",
 	}
 	f.ApplyFlags(&root)
+	root.AddCommand(discover.NewDiscoverCommand(f))
 	root.AddCommand(export.NewExportCommand(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}, f))
 	root.AddCommand(transfer_pvc.NewTransferPVCCommand(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}))
 	root.AddCommand(tunnel_api.NewTunnelAPIOptions(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}))

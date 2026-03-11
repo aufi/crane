@@ -158,6 +158,9 @@ func (o *Options) run() error {
 			return err
 		}
 
+		// Note: Generated resources support will be added in future crane-lib version
+		// For now, plugins can use custom logic to write additional resources
+
 		if response.HaveWhiteOut {
 			whPath := opts.GetWhiteOutFilePath(f.Path)
 			_, statErr := os.Stat(whPath)
@@ -247,3 +250,4 @@ func optionalFlagsToLower(inFlags map[string]string) map[string]string {
 	}
 	return lowerMap
 }
+

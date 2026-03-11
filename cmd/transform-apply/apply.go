@@ -176,6 +176,10 @@ func (o *Options) run() error {
 		log.Debugf("wrote %v bytes for file: %v", i, outputFilePath)
 	}
 
+	// Note: Generated resources support will be added in future crane-lib version
+	// For now, plugins write additional resources directly to export directory
+
 	return nil
 
 }
+

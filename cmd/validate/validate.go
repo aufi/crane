@@ -229,6 +229,27 @@ func (o *Options) run() error {
 	apiResult := apiValidator.Validate(ctx, objects)
 	report.Domains = append(report.Domains, apiResult)
 
+	// Domain 3: Capacity checks
+	log.Info("Running validation domain: Resource Capacity")
+	capacityValidator, err := domains.NewCapacityValidator(authValidator.GetKubernetesClient())
+	if err != nil {
+		report.Status = ReportStatusError
+		report.Domains = append(report.Domains, DomainResult{
+			Name:   domains.CapacityDomainName,
+			Status: DomainStatusFail,
+			Issues: []Issue{{
+				Severity: IssueSeverityError,
+				Message:  fmt.Sprintf("Failed to initialize capacity validator: %v", err),
+			}},
+		})
+		return o.outputReport(report, ExitInputError)
+	}
+
+	// Parse storage class map
+	storageClassMap := domains.ParseStorageClassMap(o.StorageClassMap)
+	capacityResult := capacityValidator.Validate(ctx, objects, storageClassMap)
+	report.Domains = append(report.Domains, capacityResult)
+
 	// Aggregate issues and determine final status
 	o.aggregateIssues(&report)
 	report.Summary.ValidatedResources = len(objects)
