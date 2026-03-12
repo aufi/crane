@@ -9,7 +9,7 @@ This implementation extends the Kustomize-only workflow with a **multi-stage pip
 1. **Stage** = One plugin execution with isolated artifacts
 2. **Pipeline** = Ordered sequence of stages
 3. **Chaining** = Each stage consumes previous stage's rendered output
-4. **Deterministic Ordering** = Stages sorted by priority, then by plugin name
+4. **Deterministic Ordering** = Stages sorted by order, then by plugin name
 
 ## Pipeline Directory Structure
 
@@ -44,7 +44,7 @@ transform/
 
 ## Stage Naming Convention
 
-Format: `<priority>_<pluginName>[:<comment>]`
+Format: `<order>_<pluginName>[:<comment>]`
 
 Examples:
 - `10_KubernetesPlugin`
@@ -52,19 +52,19 @@ Examples:
 - `30_ImageStreamPlugin:registry_rewrite`
 
 Components:
-- **Priority**: Numeric value (lower = earlier execution)
+- **Order**: Numeric value (lower = earlier execution)
 - **Plugin Name**: Sanitized plugin name
 - **Comment**: Optional user-friendly description
 
-## Priority Assignment
+## Order Assignment
 
 ### Default Behavior
 
-1. **Kubernetes plugin**: Always priority `10` (first stage)
+1. **Kubernetes plugin**: Always Order `10` (first stage)
 2. **Other plugins**: Auto-assigned in increments of `10` (20, 30, 40...)
-3. **Sorting**: Primary by priority (ascending), secondary by plugin name (alphabetical)
+3. **Sorting**: Primary by Order (ascending), secondary by plugin name (alphabetical)
 
-### Priority Overrides
+### Order Overrides
 
 Use `--plugin-priorities` flag:
 ```bash
@@ -128,20 +128,20 @@ Stages:
   Enabled: true
   ID: 10_KubernetesPlugin
   Plugin: KubernetesPlugin
-  Priority: 10
+  Order: 10
   Required: false
 - Comment: route_adjustments
   Enabled: true
   ID: 20_OpenShiftPlugin:route_adjustments
   Plugin: OpenShiftPlugin
-  Priority: 20
+  Order: 20
   Required: false
 ```
 
 Fields:
 - **ID**: Stage identifier (used in directory names)
 - **Plugin**: Plugin name (must match plugin metadata)
-- **Priority**: Execution order
+- **Order**: Execution order
 - **Required**: Whether stage must succeed
 - **Enabled**: Whether stage should execute
 - **Comment**: Optional description
@@ -169,13 +169,13 @@ Pipeline Stages:
 
 1. Stage ID: 10_KubernetesPlugin
    Plugin: KubernetesPlugin
-   Priority: 10
+   Order: 10
    Required: false
    Enabled: true
 
 2. Stage ID: 20_OpenShiftPlugin
    Plugin: OpenShiftPlugin
-   Priority: 20
+   Order: 20
    Required: false
    Enabled: true
 ```
@@ -201,7 +201,7 @@ Writes to `output/all.yaml`.
 1. **Build Pipeline**
    - Collect all plugins
    - Assign priorities (defaults + overrides)
-   - Sort stages by priority
+   - Sort stages by Order
    - Generate stage IDs
 
 2. **Execute Each Stage**
@@ -235,7 +235,7 @@ Copies of original export files.
 Output of `kubectl kustomize` for this stage (input for next stage).
 
 ### `reports/` (optional)
-- `ignored-patches.json`: Conflicts resolved by priority
+- `ignored-patches.json`: Conflicts resolved by Order
 
 ### `whiteouts/` (optional)
 - `whiteouts.json`: Resources excluded from output
@@ -299,7 +299,7 @@ kustomize.GenerateStageKustomization(artifacts, nil, false, relPath)
 ## Kubernetes Plugin Special Handling
 
 The built-in Kubernetes plugin:
-- Always executes first (priority 10)
+- Always executes first (Order 10)
 - Provides default sanitization (removes clusterIP, etc.)
 - Cannot be skipped in current implementation
 - Acts as foundation for other plugins
@@ -317,14 +317,14 @@ Potential additions for future iterations:
 ### Pipeline Configuration File
 ```yaml
 # transform-pipeline.yaml
-defaultStagePriority: 10
+defaultStageOrder: 10
 plugins:
   KubernetesPlugin:
-    priority: 10
+    Order: 10
     comment: default_cleanup
     enabled: true
   OpenShiftPlugin:
-    priority: 20
+    Order: 20
     comment: route_adjustments
     enabled: true
 ```
@@ -337,7 +337,7 @@ Continue from first incomplete stage.
 
 ### Advanced Conflict Resolution
 - Per-path conflict policies
-- Stage-level priority overrides
+- Stage-level Order overrides
 - Conflict reporting dashboards
 
 ## Migration from Single-Stage
@@ -382,7 +382,7 @@ go test ./transform/kustomize -run TestPipeline -v
 Tests cover:
 - Pipeline building
 - Stage ID generation
-- Priority sorting
+- Order sorting
 - Serialization/deserialization
 
 ### Integration Test
@@ -422,7 +422,7 @@ cat transform/stages/10_KubernetesPlugin/rendered.yaml
 
 **Check**: `pipeline.yaml` priorities
 ```bash
-grep -A5 "Priority:" transform/pipeline.yaml
+grep -A5 "Order:" transform/pipeline.yaml
 ```
 
 ## References
