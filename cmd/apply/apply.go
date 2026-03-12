@@ -88,24 +88,35 @@ func (o *Options) run() error {
 		return err
 	}
 
-	// Validate that kustomization.yaml exists
-	kustomizationPath := filepath.Join(transformDir, "kustomization.yaml")
-	if _, err := os.Stat(kustomizationPath); os.IsNotExist(err) {
-		return fmt.Errorf("kustomization.yaml not found in %s - please run 'crane transform' first", transformDir)
-	}
-
 	// Check if kubectl is available
 	if _, err := exec.LookPath("kubectl"); err != nil {
 		return fmt.Errorf("kubectl not found in PATH - please install kubectl to use crane apply")
 	}
 
-	// Execute kubectl kustomize
-	log.Infof("rendering Kustomize overlay from: %s", transformDir)
-	cmd := exec.Command("kubectl", "kustomize", transformDir)
+	// Check for pipeline structure (stages/) vs legacy single kustomization
+	finalRenderedPath := filepath.Join(transformDir, "final", "rendered.yaml")
 
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("kubectl kustomize failed: %w\nOutput: %s", err, string(output))
+	var output []byte
+	if _, err := os.Stat(finalRenderedPath); err == nil {
+		// Pipeline mode: use final rendered output
+		log.Infof("detected pipeline structure, using final rendered output")
+		output, err = os.ReadFile(finalRenderedPath)
+		if err != nil {
+			return fmt.Errorf("failed to read final rendered output: %w", err)
+		}
+	} else {
+		// Legacy mode or old structure: try direct kustomization
+		kustomizationPath := filepath.Join(transformDir, "kustomization.yaml")
+		if _, err := os.Stat(kustomizationPath); os.IsNotExist(err) {
+			return fmt.Errorf("no transform output found in %s - please run 'crane transform' first", transformDir)
+		}
+
+		log.Infof("rendering Kustomize overlay from: %s", transformDir)
+		cmd := exec.Command("kubectl", "kustomize", transformDir)
+		output, err = cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("kubectl kustomize failed: %w\nOutput: %s", err, string(output))
+		}
 	}
 
 	// Handle output
