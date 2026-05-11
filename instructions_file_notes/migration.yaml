@@ -9,15 +9,8 @@ transform:
   # Path where transformation results are saved
   transformDir: "transform"
 
-  # Path where ignored/conflicting patches are saved (optional)
-  ignoredPatchesDir: ""
-
   # Path where binary plugins are located
   pluginDir: "~/.local/share/crane/plugins"
-
-  # JSON string with optional flags for plugins (optional)
-  # Example: '{"foo-flag": "foo-a=/data,foo-b=/data", "bar-flag": "bar-value"}'
-  optionalFlags: ""
 
   # Additional arguments to pass to kubectl kustomize (optional)
   # Example: '--enable-helm --load-restrictor=LoadRestrictionsNone'

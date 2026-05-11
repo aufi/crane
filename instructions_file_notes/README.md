@@ -35,9 +35,7 @@ transform:
   # Transform parameters (all optional, defaults shown)
   exportDir: "export"
   transformDir: "transform"
-  ignoredPatchesDir: ""
   pluginDir: "~/.local/share/crane/plugins"
-  optionalFlags: ""
   kustomizeArgs: ""
   force: false
   
@@ -130,6 +128,8 @@ crane transform --config migration.yaml --kustomize-args '--enable-helm'
 
 ### Run Specific Stage Only
 
+Is this needed for single-transform call with instructions file?
+
 ```bash
 # Run only one stage from the pipeline
 crane transform --config migration.yaml --stage 50_CustomLabels
@@ -156,9 +156,7 @@ crane transform --config ../configs/migration.yaml
 |-----------|-------------|---------|
 | `exportDir` | Path where kubernetes resources are saved | `export` |
 | `transformDir` | Path where transformations are saved | `transform` |
-| `ignoredPatchesDir` | Path for conflicting patches | `""` (disabled) |
 | `pluginDir` | Path where binary plugins are located | `~/.local/share/crane/plugins` |
-| `optionalFlags` | JSON string with plugin flags | `""` |
 | `kustomizeArgs` | Additional kubectl kustomize arguments | `""` |
 | `force` | Force overwrite of existing stages | `false` |
 
