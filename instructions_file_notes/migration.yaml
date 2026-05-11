@@ -1,0 +1,60 @@
+# Crane Migration Configuration File
+# This file defines a multi-stage transformation pipeline for crane transform
+
+# Transform configuration - maps to crane transform flags
+transform:
+  # Path where kubernetes resources are exported
+  exportDir: "export"
+
+  # Path where transformation results are saved
+  transformDir: "transform"
+
+  # Path where ignored/conflicting patches are saved (optional)
+  ignoredPatchesDir: ""
+
+  # Path where binary plugins are located
+  pluginDir: "~/.local/share/crane/plugins"
+
+  # JSON string with optional flags for plugins (optional)
+  # Example: '{"foo-flag": "foo-a=/data,foo-b=/data", "bar-flag": "bar-value"}'
+  optionalFlags: ""
+
+  # Additional arguments to pass to kubectl kustomize (optional)
+  # Example: '--enable-helm --load-restrictor=LoadRestrictionsNone'
+  kustomizeArgs: ""
+
+  # Force overwrite of existing stage directories (optional)
+  force: false
+
+  # Multi-stage transformation pipeline
+  # Stages are executed sequentially in the order defined
+  # Each stage receives the fully materialized output from the previous stage
+  stages:
+    # Stage 1: Default plugin-based transformation
+    # Plugin stages (ending with 'Plugin') are automatically regenerated on each run
+    - name: "10_KubernetesPlugin"
+      type: "plugin"
+      description: "Apply default Kubernetes transformations via plugin"
+      # Plugin stages don't require --force flag for regeneration
+      autoRegenerate: true
+
+    # Stage 2: Custom manual transformations
+    # Pass-through stages (without 'Plugin' suffix) are protected from overwrite
+    - name: "50_CustomLabels"
+      type: "custom"
+      description: "Add custom labels and annotations"
+      # Custom stages require --force flag to regenerate
+      autoRegenerate: false
+
+    # Stage 3: Additional custom transformations (example)
+    # - name: "60_NetworkPolicies"
+    #   type: "custom"
+    #   description: "Add network policies"
+    #   autoRegenerate: false
+
+# Notes:
+# 1. Plugin stages (e.g., "10_KubernetesPlugin") are always regenerated automatically
+# 2. Custom stages (e.g., "50_CustomLabels") are protected and require --force to overwrite
+# 3. Each stage operates on the fully materialized output from the previous stage
+# 4. Intermediate artifacts are stored in .work/ directories for debugging
+# 5. Stage naming convention: [number]_[Name][Plugin] where Plugin suffix indicates auto-regeneration

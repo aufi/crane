@@ -1,0 +1,7 @@
+# Minimal Crane Migration Configuration
+# All unspecified fields will use crane's default values
+
+transform:
+  stages:
+    - name: "10_KubernetesPlugin"
+      type: "plugin"
