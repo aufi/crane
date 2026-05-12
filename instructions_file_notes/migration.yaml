@@ -19,31 +19,31 @@ transform:
   # Force overwrite of existing stage directories (optional)
   force: false
 
-  # Multi-stage transformation pipeline
-  # Stages are executed sequentially in the order defined
-  # Each stage receives the fully materialized output from the previous stage
-  stages:
-    # Stage 1: Default plugin-based transformation
-    # Plugin stages (ending with 'Plugin') are automatically regenerated on each run
-    - name: "10_KubernetesPlugin"
-      type: "plugin"
-      description: "Apply default Kubernetes transformations via plugin"
-      # Plugin stages don't require --force flag for regeneration
-      autoRegenerate: true
+# Multi-stage transformation pipeline
+# Stages are executed sequentially in the order defined
+# Each stage receives the fully materialized output from the previous stage
+stages:
+  # Stage 1: Default plugin-based transformation
+  # Plugin stages (ending with 'Plugin') are automatically regenerated on each run
+  - name: "10_KubernetesPlugin"
+    type: "plugin"
+    description: "Apply default Kubernetes transformations via plugin"
+    # Plugin stages don't require --force flag for regeneration
+    autoRegenerate: true
 
-    # Stage 2: Custom manual transformations
-    # Pass-through stages (without 'Plugin' suffix) are protected from overwrite
-    - name: "50_CustomLabels"
-      type: "custom"
-      description: "Add custom labels and annotations"
-      # Custom stages require --force flag to regenerate
-      autoRegenerate: false
+  # Stage 2: Custom manual transformations
+  # Pass-through stages (without 'Plugin' suffix) are protected from overwrite
+  - name: "50_CustomLabels"
+    type: "custom"
+    description: "Add custom labels and annotations"
+    # Custom stages require --force flag to regenerate
+    autoRegenerate: false
 
-    # Stage 3: Additional custom transformations (example)
-    # - name: "60_NetworkPolicies"
-    #   type: "custom"
-    #   description: "Add network policies"
-    #   autoRegenerate: false
+  # Stage 3: Additional custom transformations (example)
+  # - name: "60_NetworkPolicies"
+  #   type: "custom"
+  #   description: "Add network policies"
+  #   autoRegenerate: false
 
 # Notes:
 # 1. Plugin stages (e.g., "10_KubernetesPlugin") are always regenerated automatically

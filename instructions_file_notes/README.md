@@ -19,10 +19,9 @@ The simplest configuration only defines the stages:
 
 ```yaml
 # migration-minimal.yaml
-transform:
-  stages:
-    - name: "10_KubernetesPlugin"
-      type: "plugin"
+stages:
+  - name: "10_KubernetesPlugin"
+    type: "plugin"
 ```
 
 ### Full Configuration
@@ -38,26 +37,26 @@ transform:
   pluginDir: "~/.local/share/crane/plugins"
   kustomizeArgs: ""
   force: false
+
+# Multi-stage pipeline definition
+stages:
+  # Plugin stage - automatically regenerated on each run
+  - name: "10_KubernetesPlugin"
+    type: "plugin"
+    description: "Apply default Kubernetes transformations"
+    autoRegenerate: true
   
-  # Multi-stage pipeline definition
-  stages:
-    # Plugin stage - automatically regenerated on each run
-    - name: "10_KubernetesPlugin"
-      type: "plugin"
-      description: "Apply default Kubernetes transformations"
-      autoRegenerate: true
-    
-    # Custom stage - protected from automatic overwrites
-    - name: "50_CustomLabels"
-      type: "custom"
-      description: "Add custom labels and annotations"
-      autoRegenerate: false
-    
-    # Additional stages...
-    - name: "60_NetworkPolicies"
-      type: "custom"
-      description: "Add network policies"
-      autoRegenerate: false
+  # Custom stage - protected from automatic overwrites
+  - name: "50_CustomLabels"
+    type: "custom"
+    description: "Add custom labels and annotations"
+    autoRegenerate: false
+  
+  # Additional stages...
+  - name: "60_NetworkPolicies"
+    type: "custom"
+    description: "Add network policies"
+    autoRegenerate: false
 ```
 
 ## Stage Types
@@ -175,15 +174,14 @@ crane transform --config ../configs/migration.yaml
 
 ```yaml
 # migration.yaml
-transform:
-  stages:
-    - name: "10_KubernetesPlugin"
-      type: "plugin"
-      description: "Default Kubernetes transformations"
-    
-    - name: "50_CustomLabels"
-      type: "custom"
-      description: "Add organization-specific labels"
+stages:
+  - name: "10_KubernetesPlugin"
+    type: "plugin"
+    description: "Default Kubernetes transformations"
+  
+  - name: "50_CustomLabels"
+    type: "custom"
+    description: "Add organization-specific labels"
 ```
 
 After running `crane transform --config migration.yaml`, manually edit:
@@ -195,10 +193,10 @@ After running `crane transform --config migration.yaml`, manually edit:
 # migration-helm.yaml
 transform:
   kustomizeArgs: "--enable-helm --load-restrictor=LoadRestrictionsNone"
-  
-  stages:
-    - name: "10_KubernetesPlugin"
-      type: "plugin"
+
+stages:
+  - name: "10_KubernetesPlugin"
+    type: "plugin"
 ```
 
 ### Complex Multi-Stage Pipeline
@@ -209,32 +207,32 @@ transform:
   exportDir: "export"
   transformDir: "transform"
   kustomizeArgs: "--enable-helm"
+
+stages:
+  # Stage 1: Base cleanup
+  - name: "10_KubernetesPlugin"
+    type: "plugin"
+    description: "Remove cluster-specific fields"
   
-  stages:
-    # Stage 1: Base cleanup
-    - name: "10_KubernetesPlugin"
-      type: "plugin"
-      description: "Remove cluster-specific fields"
-    
-    # Stage 2: Add custom labels
-    - name: "20_Labels"
-      type: "custom"
-      description: "Add team and environment labels"
-    
-    # Stage 3: Network policies
-    - name: "30_NetworkPolicies"
-      type: "custom"
-      description: "Add network policies for namespace isolation"
-    
-    # Stage 4: Resource quotas
-    - name: "40_ResourceQuotas"
-      type: "custom"
-      description: "Add resource quotas and limits"
-    
-    # Stage 5: Security context
-    - name: "50_Security"
-      type: "custom"
-      description: "Enforce security contexts and pod security standards"
+  # Stage 2: Add custom labels
+  - name: "20_Labels"
+    type: "custom"
+    description: "Add team and environment labels"
+  
+  # Stage 3: Network policies
+  - name: "30_NetworkPolicies"
+    type: "custom"
+    description: "Add network policies for namespace isolation"
+  
+  # Stage 4: Resource quotas
+  - name: "40_ResourceQuotas"
+    type: "custom"
+    description: "Add resource quotas and limits"
+  
+  # Stage 5: Security context
+  - name: "50_Security"
+    type: "custom"
+    description: "Enforce security contexts and pod security standards"
 ```
 
 ## Notes
